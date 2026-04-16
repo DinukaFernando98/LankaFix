@@ -1,25 +1,27 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Poppins } from 'next/font/google'
+import './globals.css'
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: "LankaFix",
-  description: "A platform connecting customers with trusted local service providers across Sri Lanka.",
-};
+  title: 'LankaFix',
+  description: "Sri Lanka's civic issue reporting platform. Report, track, and resolve local issues with your community.",
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
-  );
+  )
 }
