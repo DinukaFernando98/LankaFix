@@ -12,10 +12,8 @@ export default auth((req) => {
   }
 
   if (pathname.startsWith('/admin')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/auth', req.nextUrl))
-    }
-    if (!session.user.isAdmin) {
+    // Unauthenticated users are allowed through — admin layout shows the login form
+    if (session && !session.user.isAdmin) {
       return NextResponse.redirect(new URL('/', req.nextUrl))
     }
   }
