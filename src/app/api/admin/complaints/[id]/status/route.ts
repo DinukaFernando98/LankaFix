@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { notifyStatusUpdated } from '@/lib/notify'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -26,16 +27,26 @@ export async function PATCH(
   }
 
   const { status, notes } = parsed.data
+  const complaintId = Number(id)
 
-  await prisma.$transaction([
+  const [complaint] = await prisma.$transaction([
     prisma.complaint.update({
-      where: { id: Number(id) },
+      where: { id: complaintId },
       data: { status },
+      select: { referenceNumber: true, title: true },
     }),
     prisma.statusHistory.create({
-      data: { complaintId: Number(id), status, notes: notes || null },
+      data: { complaintId, status, notes: notes || null },
     }),
   ])
+
+  notifyStatusUpdated({
+    complaintId,
+    referenceNumber: complaint.referenceNumber,
+    title: complaint.title,
+    status,
+    notes,
+  })
 
   return NextResponse.json({ success: true })
 }

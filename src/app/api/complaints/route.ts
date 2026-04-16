@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { generateReferenceNumber } from '@/lib/referenceNumber'
+import { notifyComplaintSubmitted } from '@/lib/notify'
 import { z } from 'zod'
 
 const complaintSchema = z.object({
@@ -53,6 +54,18 @@ export async function POST(request: Request) {
           },
         },
       },
+      include: {
+        category: { select: { name: true } },
+      },
+    })
+
+    notifyComplaintSubmitted({
+      complaintId: complaint.id,
+      userId: session.user.id,
+      referenceNumber: complaint.referenceNumber,
+      title: complaint.title,
+      category: complaint.category.name,
+      district: data.district,
     })
 
     return NextResponse.json(
