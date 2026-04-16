@@ -123,6 +123,14 @@ export default function Navbar() {
                           <p className="text-sm font-semibold text-gray-900 truncate">{session.user.fullName}</p>
                           <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
                         </div>
+                        <Link
+                          href="/my-tickets"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                        >
+                          <FileText className="w-4 h-4 text-gray-400" />
+                          My Reports
+                        </Link>
                         {session.user.isAdmin && (
                           <Link
                             href="/admin"
@@ -215,6 +223,13 @@ export default function Navbar() {
                         <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
                       </div>
                     </div>
+                    <Link
+                      href="/my-tickets"
+                      onClick={() => setMobileOpen(false)}
+                      className="px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200 cursor-pointer"
+                    >
+                      My Reports
+                    </Link>
                     {session.user.isAdmin && (
                       <Link
                         href="/admin"

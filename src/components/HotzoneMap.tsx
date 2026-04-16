@@ -2,7 +2,14 @@
 
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import type { LatLngBoundsExpression } from 'leaflet'
 import type { ClusterData } from '@/types'
+
+// Sri Lanka bounding box with a small padding
+const SL_BOUNDS: LatLngBoundsExpression = [
+  [5.5, 79.2],  // SW corner
+  [10.2, 82.1], // NE corner
+]
 
 const PRIORITY_COLOR: Record<string, string> = {
   Critical: '#dc2626',
@@ -23,6 +30,10 @@ export default function HotzoneMap({ clusters, heatmapPoints }: Props) {
     <MapContainer
       center={[7.8731, 80.7718]}
       zoom={8}
+      minZoom={7}
+      maxZoom={14}
+      maxBounds={SL_BOUNDS}
+      maxBoundsViscosity={1.0}
       style={{ height: '100%', width: '100%' }}
       scrollWheelZoom
     >
