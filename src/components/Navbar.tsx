@@ -8,6 +8,7 @@ import { Menu, X, MapPin } from 'lucide-react'
 const navLinks = [
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Features', href: '/#features' },
+  { label: 'Hotzone Map', href: '/hotzones' },
   { label: 'Track a Report', href: '/track' },
 ]
 
