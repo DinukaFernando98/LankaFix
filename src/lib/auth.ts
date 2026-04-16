@@ -25,6 +25,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.fullName,
             isAdmin: user.isAdmin,
             fullName: user.fullName,
+            departmentId: user.departmentId ?? null,
           }
         } catch {
           return null
@@ -38,6 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id as string
         token.isAdmin = (user as { isAdmin: boolean }).isAdmin
         token.fullName = (user as { fullName: string }).fullName
+        token.departmentId = (user as { departmentId: number | null }).departmentId
       }
       return token
     },
@@ -45,6 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.id as string
       session.user.isAdmin = token.isAdmin as boolean
       session.user.fullName = token.fullName as string
+      session.user.departmentId = token.departmentId as number | null
       return session
     },
   },

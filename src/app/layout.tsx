@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
+import AuthModalProvider from '@/components/providers/AuthModalProvider'
+import AuthModal from '@/components/AuthModal'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -23,7 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <AuthModalProvider>
+            {children}
+            <AuthModal />
+          </AuthModalProvider>
+        </SessionProvider>
       </body>
     </html>
   )

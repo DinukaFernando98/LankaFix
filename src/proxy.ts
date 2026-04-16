@@ -5,8 +5,10 @@ export default auth((req) => {
   const session = req.auth
   const { pathname } = req.nextUrl
 
-  if (pathname.startsWith('/submit') && !session) {
-    return NextResponse.redirect(new URL('/auth', req.nextUrl))
+  if ((pathname.startsWith('/submit') || pathname.startsWith('/my-tickets')) && !session) {
+    return NextResponse.redirect(
+      new URL(`/auth?callbackUrl=${encodeURIComponent(pathname)}`, req.nextUrl)
+    )
   }
 
   if (pathname.startsWith('/admin')) {
@@ -20,5 +22,5 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/submit/:path*', '/admin/:path*'],
+  matcher: ['/submit/:path*', '/admin/:path*', '/my-tickets/:path*', '/my-tickets'],
 }

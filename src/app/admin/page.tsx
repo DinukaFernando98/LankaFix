@@ -1,21 +1,24 @@
 import Link from 'next/link'
 import { Clock, FileText } from 'lucide-react'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import StatsGrid from '@/components/admin/StatsGrid'
 import StatusBadge from '@/components/StatusBadge'
 
-async function getData() {
+async function getData(departmentId: number | null) {
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const deptFilter = departmentId ? { category: { departmentId } } : {}
 
   const [total, open, inProgress, resolved, urgent, thisMonth, recent] = await Promise.all([
-    prisma.complaint.count(),
-    prisma.complaint.count({ where: { status: 'Open' } }),
-    prisma.complaint.count({ where: { status: 'InProgress' } }),
-    prisma.complaint.count({ where: { status: 'Resolved' } }),
-    prisma.complaint.count({ where: { status: 'Urgent' } }),
-    prisma.complaint.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma.complaint.count({ where: { ...deptFilter } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'Open' } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'InProgress' } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'Resolved' } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'Urgent' } }),
+    prisma.complaint.count({ where: { ...deptFilter, createdAt: { gte: monthStart } } }),
     prisma.complaint.findMany({
+      where: { ...deptFilter },
       take: 8,
       orderBy: { createdAt: 'desc' },
       include: { category: { select: { name: true } } },
@@ -26,13 +29,19 @@ async function getData() {
 }
 
 export default async function AdminDashboard() {
-  const data = await getData()
+  const session = await auth()
+  const departmentId = session?.user?.departmentId ?? null
+  const data = await getData(departmentId)
 
   return (
     <main className="p-6 sm:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Overview of all complaints and activity.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {departmentId
+            ? 'Overview of complaints assigned to your department.'
+            : 'Overview of all complaints across all departments.'}
+        </p>
       </div>
 
       <StatsGrid

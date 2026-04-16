@@ -6,12 +6,14 @@ declare module 'next-auth' {
       id: string
       isAdmin: boolean
       fullName: string
+      departmentId: number | null
     } & DefaultSession['user']
   }
 
   interface User {
     isAdmin: boolean
     fullName: string
+    departmentId: number | null
   }
 }
 
@@ -20,5 +22,6 @@ declare module 'next-auth/jwt' {
     id: string
     isAdmin: boolean
     fullName: string
+    departmentId: number | null
   }
 }

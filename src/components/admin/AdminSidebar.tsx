@@ -3,20 +3,26 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, FileText, LogOut, Shield } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut, Shield, Users, Building2, Map } from 'lucide-react'
 
 interface Props {
   userName: string
   userEmail: string
+  departmentId: number | null
+  departmentName: string | null
 }
 
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/complaints', label: 'Complaints', icon: FileText },
-]
-
-export default function AdminSidebar({ userName, userEmail }: Props) {
+export default function AdminSidebar({ userName, userEmail, departmentId, departmentName }: Props) {
   const pathname = usePathname()
+  const isSuperAdmin = departmentId === null
+
+  const navItems = [
+    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, always: true },
+    { href: '/admin/complaints', label: 'Complaints', icon: FileText, always: true },
+    { href: '/admin/hotzones', label: 'Hotzone Map', icon: Map, always: true },
+    { href: '/admin/users', label: 'Users', icon: Users, always: false },
+    { href: '/admin/departments', label: 'Departments', icon: Building2, always: false },
+  ].filter((item) => item.always || isSuperAdmin)
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex flex-col z-40">
@@ -32,6 +38,13 @@ export default function AdminSidebar({ userName, userEmail }: Props) {
         </Link>
       </div>
 
+      {departmentName && (
+        <div className="mx-3 mt-3 px-3 py-2 bg-green-50 rounded-xl border border-green-100">
+          <p className="text-xs text-green-600 font-medium truncate">{departmentName}</p>
+          <p className="text-xs text-green-500">Department Admin</p>
+        </div>
+      )}
+
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
@@ -46,9 +59,7 @@ export default function AdminSidebar({ userName, userEmail }: Props) {
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <Icon
-                className={`w-4 h-4 ${isActive ? 'text-green-600' : 'text-gray-400'}`}
-              />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-green-600' : 'text-gray-400'}`} />
               {label}
             </Link>
           )

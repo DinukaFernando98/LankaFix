@@ -4,13 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import {
-  Search,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Loader2,
-  SlidersHorizontal,
+  Search, Download, ChevronLeft, ChevronRight, X, Loader2, SlidersHorizontal,
+  Mail, Phone,
 } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import type { Status, Priority } from '@/types'
@@ -23,45 +18,25 @@ interface ComplaintRow {
   priority: Priority
   district: string | null
   createdAt: string
-  category: {
-    name: string
-    department: { name: string }
-  }
-  user: { fullName: string; email: string } | null
+  category: { name: string; department: { name: string } }
+  user: { fullName: string; email: string; mobile: string | null } | null
 }
 
 interface Category {
   id: number
   name: string
-  department: { name: string }
+  departmentId: number
+}
+
+interface Props {
+  departmentId: number | null
 }
 
 const DISTRICTS = [
-  'Ampara',
-  'Anuradhapura',
-  'Badulla',
-  'Batticaloa',
-  'Colombo',
-  'Galle',
-  'Gampaha',
-  'Hambantota',
-  'Jaffna',
-  'Kalutara',
-  'Kandy',
-  'Kegalle',
-  'Kilinochchi',
-  'Kurunegala',
-  'Mannar',
-  'Matale',
-  'Matara',
-  'Monaragala',
-  'Mullaitivu',
-  'Nuwara Eliya',
-  'Polonnaruwa',
-  'Puttalam',
-  'Ratnapura',
-  'Trincomalee',
-  'Vavuniya',
+  'Ampara','Anuradhapura','Badulla','Batticaloa','Colombo','Galle','Gampaha',
+  'Hambantota','Jaffna','Kalutara','Kandy','Kegalle','Kilinochchi','Kurunegala',
+  'Mannar','Matale','Matara','Monaragala','Mullaitivu','Nuwara Eliya',
+  'Polonnaruwa','Puttalam','Ratnapura','Trincomalee','Vavuniya',
 ]
 
 const STATUSES: { value: Status; label: string }[] = [
@@ -123,24 +98,18 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
     <>
       <motion.div
         variants={overlayVariants}
-        initial="hidden"
-        animate="show"
-        exit="exit"
+        initial="hidden" animate="show" exit="exit"
         className="fixed inset-0 bg-black/30 z-40"
         onClick={onClose}
       />
       <motion.div
         variants={drawerVariants}
-        initial="hidden"
-        animate="show"
-        exit="exit"
+        initial="hidden" animate="show" exit="exit"
         className="fixed right-0 top-0 h-screen w-full max-w-md bg-white shadow-xl z-50 flex flex-col"
       >
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-mono text-gray-400 mb-0.5">
-              {complaint.referenceNumber}
-            </p>
+            <p className="text-xs font-mono text-gray-400 mb-0.5">{complaint.referenceNumber}</p>
             <h3 className="text-base font-bold text-gray-900 leading-snug line-clamp-2">
               {complaint.title}
             </h3>
@@ -154,6 +123,31 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
         </div>
 
         <div className="flex-1 px-6 py-6 space-y-5 overflow-y-auto">
+          {complaint.user && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2">Submitter</p>
+              <div className="bg-gray-50 rounded-xl p-3.5 space-y-2">
+                <p className="text-sm font-semibold text-gray-900">{complaint.user.fullName}</p>
+                <a
+                  href={`mailto:${complaint.user.email}`}
+                  className="flex items-center gap-2 text-xs text-green-600 hover:text-green-700"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  {complaint.user.email}
+                </a>
+                {complaint.user.mobile && (
+                  <a
+                    href={`tel:${complaint.user.mobile}`}
+                    className="flex items-center gap-2 text-xs text-green-600 hover:text-green-700"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    {complaint.user.mobile}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1.5">Current Status</p>
             <StatusBadge status={complaint.status} size="sm" />
@@ -180,8 +174,7 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
 
           <div>
             <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-              Notes{' '}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              Notes <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <textarea
               value={notes}
@@ -210,7 +203,7 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isUpdating ? 'Updating...' : 'Update Status'}
+            {isUpdating ? 'Updating…' : 'Update Status'}
           </button>
         </div>
       </motion.div>
@@ -220,7 +213,7 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
 
 const PAGE_SIZE = 20
 
-export default function ComplaintsTable() {
+export default function ComplaintsTable({ departmentId }: Props) {
   const [complaints, setComplaints] = useState<ComplaintRow[]>([])
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(1)
@@ -237,19 +230,19 @@ export default function ComplaintsTable() {
   const [selectedComplaint, setSelectedComplaint] = useState<ComplaintRow | null>(null)
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(search)
-      setPage(1)
-    }, 400)
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1) }, 400)
     return () => clearTimeout(t)
   }, [search])
 
   useEffect(() => {
     fetch('/api/categories')
       .then((r) => r.json())
-      .then(setCategories)
+      .then((all: Category[]) => {
+        const filtered = departmentId ? all.filter((c) => c.departmentId === departmentId) : all
+        setCategories(filtered)
+      })
       .catch(() => {})
-  }, [])
+  }, [departmentId])
 
   const fetchComplaints = useCallback(async () => {
     setIsLoading(true)
@@ -274,9 +267,7 @@ export default function ComplaintsTable() {
     }
   }, [debouncedSearch, statusFilter, districtFilter, categoryFilter, page])
 
-  useEffect(() => {
-    fetchComplaints()
-  }, [fetchComplaints])
+  useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   async function handleExportCsv() {
     const params = new URLSearchParams()
@@ -285,7 +276,6 @@ export default function ComplaintsTable() {
     if (districtFilter) params.set('district', districtFilter)
     if (categoryFilter) params.set('category', categoryFilter)
     params.set('format', 'csv')
-
     const res = await fetch(`/api/admin/complaints?${params}`)
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
@@ -314,37 +304,19 @@ export default function ComplaintsTable() {
             />
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-            className={selectClass}
-          >
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }} className={selectClass}>
             <option value="">All Statuses</option>
-            {STATUSES.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
+            {STATUSES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
           </select>
 
-          <select
-            value={districtFilter}
-            onChange={(e) => { setDistrictFilter(e.target.value); setPage(1) }}
-            className={selectClass}
-          >
+          <select value={districtFilter} onChange={(e) => { setDistrictFilter(e.target.value); setPage(1) }} className={selectClass}>
             <option value="">All Districts</option>
-            {DISTRICTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+            {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
 
-          <select
-            value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-            className={selectClass}
-          >
+          <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }} className={selectClass}>
             <option value="">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={String(c.id)}>{c.name}</option>
-            ))}
+            {categories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
           </select>
 
           <button
@@ -372,40 +344,16 @@ export default function ComplaintsTable() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Reference
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Title
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Category
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    District
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Status
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Priority
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Date
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                    Submitted By
-                  </th>
-                  <th className="px-5 py-3" />
+                  {['Reference','Title','Category','District','Status','Priority','Date','Submitted By',''].map((h) => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {complaints.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3.5">
-                      <span className="font-mono text-xs text-gray-500">
-                        {c.referenceNumber}
-                      </span>
+                      <span className="font-mono text-xs text-gray-500">{c.referenceNumber}</span>
                     </td>
                     <td className="px-5 py-3.5 max-w-48">
                       <p className="text-sm text-gray-900 font-medium truncate">{c.title}</p>
@@ -414,37 +362,23 @@ export default function ComplaintsTable() {
                       <p className="text-sm text-gray-700">{c.category.name}</p>
                       <p className="text-xs text-gray-400">{c.category.department.name}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">
-                      {c.district || '—'}
-                    </td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600">{c.district || '—'}</td>
+                    <td className="px-5 py-3.5"><StatusBadge status={c.status} size="sm" /></td>
                     <td className="px-5 py-3.5">
-                      <StatusBadge status={c.status} size="sm" />
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${priorityBadge[c.priority]}`}
-                      >
+                      <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${priorityBadge[c.priority]}`}>
                         {c.priority}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(c.createdAt).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                      {new Date(c.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-3.5">
                       {c.user ? (
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-green-700">
-                              {c.user.fullName.charAt(0).toUpperCase()}
-                            </span>
+                            <span className="text-xs font-bold text-green-700">{c.user.fullName.charAt(0).toUpperCase()}</span>
                           </div>
-                          <span className="text-xs text-gray-600 truncate max-w-24">
-                            {c.user.fullName}
-                          </span>
+                          <span className="text-xs text-gray-600 truncate max-w-24">{c.user.fullName}</span>
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400">Guest</span>
@@ -468,25 +402,16 @@ export default function ComplaintsTable() {
         {!isLoading && total > 0 && (
           <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-xs text-gray-500">
-              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of{' '}
-              {total} complaints
+              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
             </p>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs text-gray-600 font-medium px-2">
-                {page} / {pages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(pages, p + 1))}
-                disabled={page === pages}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
+              <span className="text-xs text-gray-600 font-medium px-2">{page} / {pages}</span>
+              <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages}
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

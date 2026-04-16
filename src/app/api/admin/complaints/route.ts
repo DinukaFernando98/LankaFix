@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  const deptId = session.user.departmentId
+  const deptFilter = deptId ? { category: { departmentId: deptId } } : {}
+
   const { searchParams } = request.nextUrl
   const statusParam = searchParams.get('status')
   const district = searchParams.get('district') || undefined
@@ -26,6 +29,7 @@ export async function GET(request: NextRequest) {
       : undefined
 
   const where = {
+    ...deptFilter,
     ...(status && { status }),
     ...(district && { district }),
     ...(categoryId && { categoryId }),
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest) {
     category: {
       include: { department: { select: { name: true } } },
     },
-    user: { select: { fullName: true, email: true } },
+    user: { select: { fullName: true, email: true, mobile: true } },
   }
 
   if (format === 'csv') {
@@ -52,15 +56,8 @@ export async function GET(request: NextRequest) {
     })
 
     const header = [
-      'Reference',
-      'Title',
-      'Category',
-      'Department',
-      'District',
-      'Status',
-      'Priority',
-      'Submitted By',
-      'Submitted At',
+      'Reference', 'Title', 'Category', 'Department', 'District',
+      'Status', 'Priority', 'Submitted By', 'Email', 'Mobile', 'Submitted At',
     ]
     const rows = complaints.map((c) => [
       c.referenceNumber,
@@ -71,6 +68,8 @@ export async function GET(request: NextRequest) {
       c.status,
       c.priority,
       c.user?.fullName ?? 'Guest',
+      c.user?.email ?? '',
+      c.user?.mobile ?? '',
       new Date(c.createdAt).toLocaleDateString('en-GB'),
     ])
 
@@ -94,10 +93,5 @@ export async function GET(request: NextRequest) {
     prisma.complaint.count({ where }),
   ])
 
-  return NextResponse.json({
-    complaints,
-    total,
-    pages: Math.ceil(total / LIMIT),
-    page,
-  })
+  return NextResponse.json({ complaints, total, pages: Math.ceil(total / LIMIT), page })
 }

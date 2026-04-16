@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -62,8 +62,10 @@ function FieldError({ message }: { message?: string }) {
   )
 }
 
-export default function AuthPage() {
+function AuthPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl') || '/'
   const { status } = useSession()
   const [tab, setTab] = useState<Tab>('signin')
   const [direction, setDirection] = useState(1)
@@ -72,9 +74,9 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push('/submit')
+      router.push(callbackUrl)
     }
-  }, [status, router])
+  }, [status, router, callbackUrl])
 
   const signInForm = useForm<SignInFormData>({ resolver: zodResolver(signInSchema) })
   const registerForm = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) })
@@ -96,7 +98,7 @@ export default function AuthPage() {
     if (result?.error) {
       setServerError('Invalid email or password. Please try again.')
     } else {
-      router.push('/submit')
+      router.push(callbackUrl)
       router.refresh()
     }
   }
@@ -121,7 +123,7 @@ export default function AuthPage() {
     if (signInResult?.error) {
       switchTab('signin')
     } else {
-      router.push('/submit')
+      router.push(callbackUrl)
       router.refresh()
     }
   }
@@ -415,5 +417,19 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+        </div>
+      }
+    >
+      <AuthPageInner />
+    </Suspense>
   )
 }

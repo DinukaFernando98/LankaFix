@@ -8,16 +8,19 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  const deptId = session.user.departmentId
+  const deptFilter = deptId ? { category: { departmentId: deptId } } : {}
+
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const [total, open, inProgress, resolved, urgent, thisMonth] = await Promise.all([
-    prisma.complaint.count(),
-    prisma.complaint.count({ where: { status: 'Open' } }),
-    prisma.complaint.count({ where: { status: 'InProgress' } }),
-    prisma.complaint.count({ where: { status: 'Resolved' } }),
-    prisma.complaint.count({ where: { status: 'Urgent' } }),
-    prisma.complaint.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma.complaint.count({ where: { ...deptFilter } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'Open' } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'InProgress' } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'Resolved' } }),
+    prisma.complaint.count({ where: { ...deptFilter, status: 'Urgent' } }),
+    prisma.complaint.count({ where: { ...deptFilter, createdAt: { gte: monthStart } } }),
   ])
 
   return NextResponse.json({ total, open, inProgress, resolved, urgent, thisMonth })
