@@ -76,6 +76,31 @@ export interface HotzoneResult {
   clusters: ClusterData[]
   heatmap_points: [number, number, number][]
   k_used: number
+  elbow_wcss: number[]
   total_complaints: number
   generated_at: string
+}
+
+export interface WeeklyCount {
+  label: string
+  count: number
+}
+
+export interface DistrictPrediction {
+  district: string
+  historicalWeeks: WeeklyCount[]
+  predictedWeeks: WeeklyCount[]
+  trend: 'rising' | 'falling' | 'stable'
+  slopePerWeek: number
+  riskLevel: 'High' | 'Medium' | 'Low'
+  r2: number
+  avgWeekly: number
+  topCategory: string
+  totalHistorical: number
+}
+
+export interface PredictionResult {
+  predictions: DistrictPrediction[]
+  weeksAnalyzed: number
+  generatedAt: string
 }

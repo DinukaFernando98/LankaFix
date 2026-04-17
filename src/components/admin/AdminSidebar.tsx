@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, FileText, LogOut, Shield, Users, Building2, Map } from 'lucide-react'
+import { LayoutDashboard, FileText, LogOut, Shield, Users, Building2, Map, Brain } from 'lucide-react'
 
 interface Props {
   userName: string
@@ -19,7 +19,8 @@ export default function AdminSidebar({ userName, userEmail, departmentId, depart
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, always: true },
     { href: '/admin/complaints', label: 'Complaints', icon: FileText, always: true },
-    { href: '/admin/hotzones', label: 'Hotzone Map', icon: Map, always: true },
+    { href: '/admin/hotzones',     label: 'Hotzone Map',  icon: Map,   always: true },
+    { href: '/admin/predictions', label: 'Predictions',  icon: Brain, always: true },
     { href: '/admin/users', label: 'Users', icon: Users, always: false },
     { href: '/admin/departments', label: 'Departments', icon: Building2, always: false },
   ].filter((item) => item.always || isSuperAdmin)

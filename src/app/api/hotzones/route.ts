@@ -68,41 +68,99 @@ function kMeanspp(points: Point[], k: number): { centroid: { lat: number; lng: n
   return centroids.map((centroid, i) => ({ centroid, members: final[i] }))
 }
 
+// ── Elbow method ─────────────────────────────────────────────────────────────
+// Runs KMeans++ `runs` times per k and takes the best (lowest) WCSS for
+// stability, then picks the inflection point via second derivative.
+
+function computeWCSS(points: Point[], k: number, runs = 3): number {
+  let best = Infinity
+  for (let r = 0; r < runs; r++) {
+    const clusters = kMeanspp(points, k)
+    let wcss = 0
+    for (const cluster of clusters) {
+      for (const p of cluster.members) {
+        wcss += distance(p, cluster.centroid) ** 2
+      }
+    }
+    if (wcss < best) best = wcss
+  }
+  return best
+}
+
+function findOptimalK(points: Point[]): { k: number; wcssValues: number[] } {
+  const n = points.length
+  if (n <= 2) return { k: n, wcssValues: [] }
+
+  const kMax = Math.min(10, n)
+  const wcssValues: number[] = []
+
+  for (let k = 1; k <= kMax; k++) {
+    wcssValues.push(computeWCSS(points, k))
+  }
+
+  // Second derivative: find index with maximum curvature (the "elbow")
+  // wcssValues[i] corresponds to k = i + 1
+  let maxCurvature = -Infinity
+  let elbowIndex = 1 // default k = 2
+
+  for (let i = 1; i < wcssValues.length - 1; i++) {
+    const curvature = wcssValues[i - 1] - 2 * wcssValues[i] + wcssValues[i + 1]
+    if (curvature > maxCurvature) {
+      maxCurvature = curvature
+      elbowIndex = i
+    }
+  }
+
+  return { k: Math.max(2, elbowIndex + 1), wcssValues }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const deptId = searchParams.get('departmentId') ? Number(searchParams.get('departmentId')) : undefined
+  const dateRange = searchParams.get('dateRange') || 'all'
+
+  let createdAtFilter: { gte: Date } | undefined
+  const now = Date.now()
+  if (dateRange === '30d')  createdAtFilter = { gte: new Date(now - 30  * 86400000) }
+  if (dateRange === '90d')  createdAtFilter = { gte: new Date(now - 90  * 86400000) }
+  if (dateRange === '180d') createdAtFilter = { gte: new Date(now - 180 * 86400000) }
 
   const rows = await prisma.complaint.findMany({
     where: {
-      latitude: { not: null },
+      latitude:  { not: null },
       longitude: { not: null },
-      ...(deptId && { category: { departmentId: deptId } }),
+      ...(deptId        && { category: { departmentId: deptId } }),
+      ...(createdAtFilter && { createdAt: createdAtFilter }),
     },
     select: {
-      latitude: true,
+      latitude:  true,
       longitude: true,
-      category: { select: { name: true } },
+      category:  { select: { name: true } },
     },
   })
 
-  if (rows.length === 0) {
+  if (rows.length < 2) {
     const result: HotzoneResult = {
       clusters: [],
       heatmap_points: [],
       k_used: 0,
-      total_complaints: 0,
+      elbow_wcss: [],
+      total_complaints: rows.length,
       generated_at: new Date().toISOString(),
     }
     return NextResponse.json(result)
   }
 
   const points: Point[] = rows.map((r) => ({
-    lat: r.latitude!,
-    lng: r.longitude!,
+    lat:      r.latitude!,
+    lng:      r.longitude!,
     category: r.category.name,
   }))
 
-  const k = Math.max(1, Math.min(5, points.length))
+  // Elbow method selects optimal k automatically
+  const { k, wcssValues } = findOptimalK(points)
   const raw = kMeanspp(points, k)
   const maxCount = Math.max(...raw.map((r) => r.members.length), 1)
 
@@ -116,22 +174,34 @@ export async function GET(request: NextRequest) {
       const priority: ClusterData['priority'] =
         ratio >= 0.75 ? 'Critical' : ratio >= 0.5 ? 'High' : ratio >= 0.25 ? 'Medium' : 'Low'
       return {
-        cluster_id: i + 1,
-        centroid_lat: r.centroid.lat,
-        centroid_lng: r.centroid.lng,
+        cluster_id:    i + 1,
+        centroid_lat:  r.centroid.lat,
+        centroid_lng:  r.centroid.lng,
         complaint_count: r.members.length,
-        top_category: topCategory,
+        top_category:  topCategory,
         priority,
       }
     })
     .sort((a, b) => b.complaint_count - a.complaint_count)
 
+  // Heatmap intensity is proportional to the density of the cluster the point belongs to
+  const heatmapPoints: [number, number, number][] = points.map((p) => {
+    let minD = Infinity, clusterIdx = 0
+    for (let i = 0; i < raw.length; i++) {
+      const d = distance(p, raw[i].centroid)
+      if (d < minD) { minD = d; clusterIdx = i }
+    }
+    const intensity = 0.2 + (raw[clusterIdx].members.length / maxCount) * 0.8
+    return [p.lat, p.lng, intensity]
+  })
+
   const result: HotzoneResult = {
     clusters,
-    heatmap_points: points.map((p) => [p.lat, p.lng, 0.6]),
-    k_used: k,
+    heatmap_points: heatmapPoints,
+    k_used:         k,
+    elbow_wcss:     wcssValues,
     total_complaints: points.length,
-    generated_at: new Date().toISOString(),
+    generated_at:   new Date().toISOString(),
   }
 
   return NextResponse.json(result)

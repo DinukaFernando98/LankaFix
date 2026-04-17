@@ -39,8 +39,16 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 }
 
+const DATE_RANGES = [
+  { value: '30d',  label: 'Last 30 days' },
+  { value: '90d',  label: 'Last 3 months' },
+  { value: '180d', label: 'Last 6 months' },
+  { value: 'all',  label: 'All time' },
+]
+
 export default function AdminHotzoneClient({ fixedDepartmentId, departments }: Props) {
   const [selectedDept, setSelectedDept] = useState<number | null>(fixedDepartmentId)
+  const [dateRange, setDateRange] = useState('all')
   const [data, setData] = useState<HotzoneResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -48,35 +56,49 @@ export default function AdminHotzoneClient({ fixedDepartmentId, departments }: P
   useEffect(() => {
     setIsLoading(true)
     setError(false)
-    const url = selectedDept ? `/api/hotzones?departmentId=${selectedDept}` : '/api/hotzones'
-    fetch(url)
+    const params = new URLSearchParams()
+    if (selectedDept) params.set('departmentId', String(selectedDept))
+    if (dateRange !== 'all') params.set('dateRange', dateRange)
+    fetch(`/api/hotzones?${params}`)
       .then((r) => { if (!r.ok) throw new Error(); return r.json() })
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setIsLoading(false))
-  }, [selectedDept])
+  }, [selectedDept, dateRange])
+
+  const selectClass = 'px-3 py-2 text-sm text-gray-700 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent cursor-pointer'
 
   return (
     <div>
-      {!fixedDepartmentId && departments.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 flex-shrink-0">
-              Filter by department:
-            </label>
-            <select
-              value={selectedDept ?? ''}
-              onChange={(e) => setSelectedDept(e.target.value ? Number(e.target.value) : null)}
-              className="px-3 py-2 text-sm text-gray-700 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent cursor-pointer"
-            >
-              <option value="">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
+        <div className="flex flex-wrap items-center gap-3">
+          {!fixedDepartmentId && departments.length > 0 && (
+            <>
+              <label className="text-sm font-medium text-gray-700 flex-shrink-0">Department:</label>
+              <select
+                value={selectedDept ?? ''}
+                onChange={(e) => setSelectedDept(e.target.value ? Number(e.target.value) : null)}
+                className={selectClass}
+              >
+                <option value="">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </>
+          )}
+          <label className="text-sm font-medium text-gray-700 flex-shrink-0">Date range:</label>
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className={selectClass}
+          >
+            {DATE_RANGES.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
         </div>
-      )}
+      </div>
 
       {isLoading && (
         <div className="flex items-center justify-center h-96 bg-white rounded-2xl border border-gray-100 shadow-sm">

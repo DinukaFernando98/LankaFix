@@ -53,13 +53,25 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 }
 
+const DATE_RANGES = [
+  { value: '30d',  label: 'Last 30 days' },
+  { value: '90d',  label: 'Last 3 months' },
+  { value: '180d', label: 'Last 6 months' },
+  { value: 'all',  label: 'All time' },
+]
+
 export default function HotzoneClient() {
   const [data, setData] = useState<HotzoneResult | null>(null)
+  const [dateRange, setDateRange] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch('/api/hotzones')
+    setIsLoading(true)
+    setError(false)
+    const params = new URLSearchParams()
+    if (dateRange !== 'all') params.set('dateRange', dateRange)
+    fetch(`/api/hotzones?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
@@ -67,7 +79,7 @@ export default function HotzoneClient() {
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [dateRange])
 
   return (
     <main className="flex-1 bg-white">
@@ -90,6 +102,27 @@ export default function HotzoneClient() {
               with the highest concentration of unresolved civic issues.
             </p>
           </motion.div>
+        </div>
+      </section>
+
+      <section className="bg-white py-4 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-600">Date range:</span>
+          <div className="flex gap-2">
+            {DATE_RANGES.map((r) => (
+              <button
+                key={r.value}
+                onClick={() => setDateRange(r.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                  dateRange === r.value
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
