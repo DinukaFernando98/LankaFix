@@ -7,6 +7,7 @@ const footerLinks = {
     { label: 'Track a Report', href: '/track' },
     { label: 'How It Works', href: '/#how-it-works' },
     { label: 'Features', href: '/#features' },
+    { label: 'Contact Us', href: '/contact' },
   ],
   Account: [
     { label: 'Sign In', href: '/auth' },

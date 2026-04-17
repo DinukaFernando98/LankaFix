@@ -13,6 +13,7 @@ const navLinks = [
   { label: 'Features', href: '/#features' },
   { label: 'Hotzone Map', href: '/hotzones' },
   { label: 'Track a Report', href: '/track' },
+  { label: 'Contact', href: '/contact' },
 ]
 
 export default function Navbar() {
