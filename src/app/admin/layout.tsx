@@ -1,13 +1,16 @@
 import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import AdminLoginPage from './AdminLoginPage'
 
 export const metadata = { title: 'Admin — LankaFix' }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
-  if (!session?.user?.isAdmin) redirect('/auth')
+
+  if (!session?.user?.isAdmin) {
+    return <AdminLoginPage />
+  }
 
   const deptId = session.user.departmentId
   const department = deptId

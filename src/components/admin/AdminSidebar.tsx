@@ -79,7 +79,7 @@ export default function AdminSidebar({ userName, userEmail, departmentId, depart
           </div>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: '/auth' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors duration-150 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />

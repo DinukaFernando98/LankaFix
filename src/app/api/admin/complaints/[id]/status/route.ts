@@ -9,6 +9,24 @@ const schema = z.object({
   notes: z.string().optional(),
 })
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id } = await params
+  const history = await prisma.statusHistory.findMany({
+    where: { complaintId: Number(id) },
+    orderBy: { changedAt: 'desc' },
+  })
+
+  return NextResponse.json(history)
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

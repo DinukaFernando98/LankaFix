@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import {
   Search, Download, ChevronLeft, ChevronRight, X, Loader2, SlidersHorizontal,
-  Mail, Phone,
+  Mail, Phone, Pencil, Clock,
 } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import type { Status, Priority } from '@/types'
@@ -70,15 +70,44 @@ interface DrawerProps {
   onUpdated: () => void
 }
 
+interface HistoryEntry {
+  id: number
+  status: Status
+  notes: string | null
+  changedAt: string
+}
+
+const STATUS_LABEL: Record<Status, string> = {
+  Open: 'Open',
+  InProgress: 'In Progress',
+  Resolved: 'Resolved',
+  Urgent: 'Urgent',
+}
+
 function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
+  const [currentStatus, setCurrentStatus] = useState<Status>(complaint.status)
   const [newStatus, setNewStatus] = useState<Status>(complaint.status)
   const [notes, setNotes] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+
+  function fetchHistory() {
+    setHistoryLoading(true)
+    fetch(`/api/admin/complaints/${complaint.id}/status`)
+      .then((r) => r.json())
+      .then((data) => { setHistory(data); setHistoryLoading(false) })
+      .catch(() => setHistoryLoading(false))
+  }
+
+  useEffect(() => { fetchHistory() }, [complaint.id])
 
   async function handleSubmit() {
     setIsUpdating(true)
     setError('')
+    setSuccess(false)
     try {
       const res = await fetch(`/api/admin/complaints/${complaint.id}/status`, {
         method: 'PATCH',
@@ -86,13 +115,19 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
         body: JSON.stringify({ status: newStatus, notes: notes.trim() || undefined }),
       })
       if (!res.ok) throw new Error()
+      setCurrentStatus(newStatus)
+      setNotes('')
+      setSuccess(true)
+      fetchHistory()
       onUpdated()
-      onClose()
     } catch {
-      setError('Failed to update status. Please try again.')
+      setError('Failed to save. Please try again.')
+    } finally {
       setIsUpdating(false)
     }
   }
+
+  const canSubmit = newStatus !== currentStatus || notes.trim().length > 0
 
   return (
     <>
@@ -150,7 +185,7 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
 
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1.5">Current Status</p>
-            <StatusBadge status={complaint.status} size="sm" />
+            <StatusBadge status={currentStatus} size="sm" />
           </div>
 
           <div>
@@ -185,6 +220,54 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
             />
           </div>
 
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2">History</p>
+            {historyLoading ? (
+              <div className="flex items-center gap-2 py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-300" />
+                <span className="text-xs text-gray-400">Loading…</span>
+              </div>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-gray-400">No history yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map((h) => (
+                  <div key={h.id} className="flex gap-2.5">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Clock className="w-3.5 h-3.5 text-gray-300" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-semibold text-gray-700">
+                          {STATUS_LABEL[h.status]}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(h.changedAt).toLocaleDateString('en-GB', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                          })}{' '}
+                          {new Date(h.changedAt).toLocaleTimeString('en-GB', {
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      {h.notes && (
+                        <p className="text-xs text-gray-500 mt-0.5 bg-gray-50 rounded-lg px-2.5 py-1.5 border border-gray-100">
+                          {h.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {success && (
+            <p className="text-xs text-green-700 bg-green-50 border border-green-100 px-3 py-2 rounded-lg">
+              Saved successfully.
+            </p>
+          )}
+
           {error && (
             <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
           )}
@@ -199,11 +282,11 @@ function StatusDrawer({ complaint, onClose, onUpdated }: DrawerProps) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isUpdating || newStatus === complaint.status}
+            disabled={isUpdating || !canSubmit}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isUpdating ? 'Updating…' : 'Update Status'}
+            {isUpdating ? 'Updating…' : 'Save'}
           </button>
         </div>
       </motion.div>
@@ -384,12 +467,13 @@ export default function ComplaintsTable({ departmentId }: Props) {
                         <span className="text-xs text-gray-400">Guest</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-3.5">
                       <button
                         onClick={() => setSelectedComplaint(c)}
-                        className="text-xs font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                        aria-label="Edit status"
                       >
-                        Update Status
+                        <Pencil className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>

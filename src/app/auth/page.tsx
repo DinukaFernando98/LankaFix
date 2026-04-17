@@ -66,7 +66,6 @@ function AuthPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
-  const adminOnly = searchParams.get('adminOnly') === 'true'
   const { status } = useSession()
   const [tab, setTab] = useState<Tab>('signin')
   const [direction, setDirection] = useState(1)
@@ -75,9 +74,9 @@ function AuthPageInner() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push(adminOnly ? '/admin' : callbackUrl)
+      router.push(callbackUrl)
     }
-  }, [status, router, callbackUrl, adminOnly])
+  }, [status, router, callbackUrl])
 
   const signInForm = useForm<SignInFormData>({ resolver: zodResolver(signInSchema) })
   const registerForm = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) })
@@ -99,7 +98,7 @@ function AuthPageInner() {
     if (result?.error) {
       setServerError('Invalid email or password. Please try again.')
     } else {
-      router.push(adminOnly ? '/admin' : callbackUrl)
+      router.push(callbackUrl)
       router.refresh()
     }
   }
@@ -189,34 +188,30 @@ function AuthPageInner() {
           <div className="w-full max-w-md">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900">
-                {adminOnly ? 'Admin Sign In' : tab === 'signin' ? 'Welcome back' : 'Create your account'}
+                {tab === 'signin' ? 'Welcome back' : 'Create your account'}
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                {adminOnly
-                  ? 'Sign in to access the admin portal.'
-                  : tab === 'signin'
+                {tab === 'signin'
                   ? 'Sign in to report and track civic issues.'
                   : 'Start reporting civic issues in your community.'}
               </p>
             </div>
 
-            {!adminOnly && (
-              <div className="flex bg-gray-100 rounded-xl p-1 mb-7">
-                {(['signin', 'register'] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => switchTab(t)}
-                    className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
-                      tab === t
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    {t === 'signin' ? 'Sign In' : 'Create Account'}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex bg-gray-100 rounded-xl p-1 mb-7">
+              {(['signin', 'register'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => switchTab(t)}
+                  className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                    tab === t
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t === 'signin' ? 'Sign In' : 'Create Account'}
+                </button>
+              ))}
+            </div>
 
             {serverError && (
               <motion.div
@@ -229,7 +224,7 @@ function AuthPageInner() {
             )}
 
             <AnimatePresence mode="wait" custom={direction}>
-              {(tab === 'signin' || adminOnly) ? (
+              {tab === 'signin' ? (
                 <motion.form
                   key="signin"
                   custom={-direction}
